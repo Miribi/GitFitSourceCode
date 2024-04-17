@@ -181,7 +181,7 @@ private string GenerateJwtToken(UserModel user, SymmetricSecurityKey securityKey
         public async Task<IActionResult> UpdateUser(UserModel updatedUser)
         {
             // Retrieve the user ID from the authentication token
-            var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier);
+            var userIdClaim = HttpContext.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier);
             if (userIdClaim == null)
             {
                 return Unauthorized("User not authenticated.");
