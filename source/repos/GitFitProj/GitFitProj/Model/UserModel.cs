@@ -9,33 +9,45 @@ namespace GitFitProj.Model
 
         [Required]
         [StringLength(50)]
-        public string Firstname { get; set; }
+        public string Firstname { get; set; } = string.Empty;
 
         [Required]
         [StringLength(50)]
-        public string Lastname { get; set; }
+        public string Lastname { get; set; } = string.Empty;
 
         [Required]
         [StringLength(50)]
-        public string Gender { get; set; }
+        public string Gender { get; set; } = string.Empty;
 
 
         [Required]
         [EmailAddress]
-        [StringLength(100)]
-        public string Email { get; set; }
+        [StringLength(50)]
+        public string Email { get; set; } = string.Empty;
 
 
         [Required]
         [DataType(DataType.Date)]
-        [DisplayFormat(DataFormatString = "{0:dd/MM/yyyy}", ApplyFormatInEditMode = true)]
+        [DisplayFormat(DataFormatString = "{0:dd-MM-yy}", ApplyFormatInEditMode = true)]
         public DateTime DateOfBirth { get; set; }
+
 
 
         [Required]
         [StringLength(100, MinimumLength = 6)]
-        public string Password { get; set; }
+        public string Password { get; set; } = string.Empty;
 
+
+
+
+        [Required]
+        public int Height { get; set; }
+
+
+        [Required]
+        public int Weight { get; set; }
+
+        
     }
 
 
