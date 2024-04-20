@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace GitFitProj.Migrations
 {
     [DbContext(typeof(GitFitContext))]
-    [Migration("20240414190121_testTable")]
-    partial class testTable
+    [Migration("20240420221657_AddNewUserColumns")]
+    partial class AddNewUserColumns
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -33,12 +33,28 @@ namespace GitFitProj.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("LogId"));
 
+                    b.Property<DateTime>("ActivityDate")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("ActivityType")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int>("AverageHeartRate")
+                        .HasColumnType("int");
+
+                    b.Property<double>("CaloriesBurned")
+                        .HasColumnType("float");
+
                     b.Property<double>("Distance")
                         .HasColumnType("float");
+
+                    b.Property<TimeSpan>("Duration")
+                        .HasColumnType("time");
+
+                    b.Property<string>("Intensity")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("Steps")
                         .HasColumnType("int");
@@ -61,13 +77,16 @@ namespace GitFitProj.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("UserId"));
 
+                    b.Property<int>("DailyStepGoal")
+                        .HasColumnType("int");
+
                     b.Property<DateTime>("DateOfBirth")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Email")
                         .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<string>("Firstname")
                         .IsRequired()
@@ -92,8 +111,19 @@ namespace GitFitProj.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<string>("PreferredActivityType")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("PreferredIntensity")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<int>("Weight")
                         .HasColumnType("int");
+
+                    b.Property<double>("WeightGoal")
+                        .HasColumnType("float");
 
                     b.HasKey("UserId");
 

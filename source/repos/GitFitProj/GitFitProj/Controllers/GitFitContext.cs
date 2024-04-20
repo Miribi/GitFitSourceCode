@@ -4,9 +4,9 @@ using System.Diagnostics;
 
 namespace GitFitProj.Controllers
 {
-    public class DataBaseController : DbContext
+    public class GitFitContext : DbContext
     {
-        public DataBaseController(DbContextOptions<DataBaseController> options)
+        public GitFitContext(DbContextOptions<GitFitContext> options)
         : base(options)
         {
         }

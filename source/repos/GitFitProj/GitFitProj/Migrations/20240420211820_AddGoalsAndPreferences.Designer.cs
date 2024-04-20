@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace GitFitProj.Migrations
 {
     [DbContext(typeof(GitFitContext))]
-    [Migration("20240414190121_testTable")]
-    partial class testTable
+    [Migration("20240420211820_AddGoalsAndPreferences")]
+    partial class AddGoalsAndPreferences
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -33,12 +33,21 @@ namespace GitFitProj.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("LogId"));
 
+                    b.Property<DateTime>("ActivityDate")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("ActivityType")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<double>("CaloriesBurned")
+                        .HasColumnType("float");
+
                     b.Property<double>("Distance")
                         .HasColumnType("float");
+
+                    b.Property<TimeSpan>("Duration")
+                        .HasColumnType("time");
 
                     b.Property<int>("Steps")
                         .HasColumnType("int");
@@ -66,8 +75,8 @@ namespace GitFitProj.Migrations
 
                     b.Property<string>("Email")
                         .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<string>("Firstname")
                         .IsRequired()

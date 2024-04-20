@@ -1,16 +1,20 @@
 
-using System;
-using System.Security.Cryptography;
-using GitFitProj.Model;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.IdentityModel.Tokens;
+using System.Security.Claims;
+using System.Security.Cryptography;
+using System.Text;
+using System.Threading.Tasks;
+
+using GitFitProj.Model;
 using Microsoft.EntityFrameworkCore;
 using System.Linq;
-using System.Threading.Tasks;
 using GitFitProj.Controllers;
-using System.Text;
-using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
+using Microsoft.Extensions.Localization;
+
+
 
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
@@ -21,24 +25,17 @@ namespace EADproject.Controllers
     [ApiController]
     public class FitController : ControllerBase
     {
-        private readonly DataBaseController _context;
+        private readonly GitFitContext _context;
+        private readonly IStringLocalizer<FitController> _localizer;
         private readonly SymmetricSecurityKey _securityKey;
-        public FitController(DataBaseController context)
-        {
+        public FitController(GitFitContext context, IStringLocalizer<FitController> localizer, IConfiguration configuration)
+        { // Generate a random key with 32 bytes (256 bits)
             _context = context;
-
-
-
-            // Generate a random key with 32 bytes (256 bits)
-            byte[] keyBytes = new byte[32];
-            using (var rng = new RNGCryptoServiceProvider())
-            {
-                rng.GetBytes(keyBytes);
-            }
-            _securityKey = new SymmetricSecurityKey(keyBytes);
-
-
+            _localizer = localizer;
+            var jwtKey = configuration["JwtConfig:Secret"];
+            _securityKey = new SymmetricSecurityKey(Convert.FromBase64String(jwtKey));
         }
+
 
 
 
@@ -62,58 +59,29 @@ namespace EADproject.Controllers
         public async Task<ActionResult<string>> Login(string email, string password)
         {
             var user = await _context.UserModel.FirstOrDefaultAsync(u => u.Email == email);
-            if (user == null)
-            {
-                return NotFound("User not found. Please Check your details or Sign Up");
-            }
-
-            // Verify the password
-            if (!VerifyPassword(password, user.Password))
-            {
-                return Unauthorized("Invalid password.");
-            } // add reset password if there is time in the end
-
-            // Authentication successful
-            var token = GenerateJwtToken(user, _securityKey);
-            return Ok(token);
+            if (user == null) return NotFound("User not found. Please Check your details or Sign Up");
+            if (!VerifyPassword(password, user.Password)) return Unauthorized("Invalid password.");
+            return Ok(GenerateJwtToken(user));
         }
 
         private bool VerifyPassword(string password, string hashedPassword)
         {
             using var sha256 = SHA256.Create();
-            var hashedBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(password));
-            var hashedPasswordInput = Convert.ToBase64String(hashedBytes);
-
-            return hashedPasswordInput == hashedPassword;
+            return Convert.ToBase64String(sha256.ComputeHash(Encoding.UTF8.GetBytes(password))) == hashedPassword;
         }
-        
-private string GenerateJwtToken(UserModel user, SymmetricSecurityKey securityKey)
+
+        private string GenerateJwtToken(UserModel user)
         {
-            
-            var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
-
-            var claims = new[]
-            {
-                new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
-                // You can add more claims as needed
-            };
-
+            var credentials = new SigningCredentials(_securityKey, SecurityAlgorithms.HmacSha256);
+            var claims = new[] { new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()) };
             var token = new JwtSecurityToken(
                 issuer: "GitFit Tracker",
                 audience: "https://localhost:7288",
                 claims: claims,
-                expires: DateTime.UtcNow.AddHours(1), // Set token expiration time
-                signingCredentials: credentials
-            );
-
+                expires: DateTime.UtcNow.AddHours(1),
+                signingCredentials: credentials);
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
-
-
-
-
-
-        
 
 
 
@@ -121,45 +89,22 @@ private string GenerateJwtToken(UserModel user, SymmetricSecurityKey securityKey
         [HttpPost("signup")]
         public async Task<ActionResult<UserModel>> SignUp(UserModel model)
         {
-            
-            // Check if the email is already used
-            var existingUser = await _context.UserModel.FirstOrDefaultAsync(u => u.Email == model.Email);
-            if (existingUser != null)
-            {
+            if (await _context.UserModel.AnyAsync(u => u.Email == model.Email))
                 return Conflict("This account already exists. Please reset Password.");
-            }
-
-            // Create a new user entity from the signup model.
-            var user = new UserModel
-            {
-                Firstname = model.Firstname,
-                Lastname = model.Lastname,
-                Gender = model.Gender,
-                Email = model.Email,
-                DateOfBirth = model.DateOfBirth,
-                Password = HashPassword(model.Password),
-                Height = model.Height,
-                Weight = model.Weight
-            };
-
-            // Add the new user to DbContext.
-            _context.UserModel.Add(user);
-
-            // Save the changes to the database.
+            model.Password = HashPassword(model.Password);
+            _context.UserModel.Add(model);
             await _context.SaveChangesAsync();
-
-            // Return a CreatedAtAction response. This includes a Location header that points to the new user.
-            return CreatedAtAction(nameof(GetUser), new { id = user.UserId }, user);
+            return CreatedAtAction(nameof(GetUser), new { id = model.UserId }, model);
         }
-
-
 
         private string HashPassword(string password)
         {
             using var sha256 = SHA256.Create();
-            var hashedBytes = sha256.ComputeHash(System.Text.Encoding.UTF8.GetBytes(password));
-            return Convert.ToBase64String(hashedBytes);
+            return Convert.ToBase64String(sha256.ComputeHash(Encoding.UTF8.GetBytes(password)));
         }
+
+
+
 
         [HttpDelete("delete/{id}")]
         public async Task<IActionResult> DeleteUser(int id)
@@ -177,46 +122,144 @@ private string GenerateJwtToken(UserModel user, SymmetricSecurityKey securityKey
         }
 
 
-        [HttpPut("update")]
-        public async Task<IActionResult> UpdateUser(UserModel updatedUser)
+        [HttpPut("update/{id}")]
+        public async Task<IActionResult> UpdateUserDetails(int id, [FromBody] UserModel userDetails)
         {
-            // Retrieve the user ID from the authentication token
-            var userIdClaim = HttpContext.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier);
-            if (userIdClaim == null)
+            var user = await _context.UserModel.FindAsync(id);
+            if (user == null)
             {
-                return Unauthorized("User not authenticated.");
+                return NotFound("User not found.");
             }
 
-            int userId;
-            if (!int.TryParse(userIdClaim.Value, out userId))
+            // Update user details only if they are provided in the request
+            user.Firstname = userDetails.Firstname ?? user.Firstname;
+            user.Lastname = userDetails.Lastname ?? user.Lastname;
+            user.Gender = userDetails.Gender ?? user.Gender;
+            user.Email = userDetails.Email ?? user.Email;
+            user.DateOfBirth = userDetails.DateOfBirth != default ? userDetails.DateOfBirth : user.DateOfBirth;
+            user.Height = userDetails.Height != default ? userDetails.Height : user.Height;
+            user.Weight = userDetails.Weight != default ? userDetails.Weight : user.Weight;
+
+            // Update the password only if a new value is provided
+            if (!string.IsNullOrEmpty(userDetails.Password))
             {
-                return BadRequest("Invalid user ID in the token.");
+                user.Password = HashPassword(userDetails.Password);
             }
 
-            // Find the user by ID
+            // Save changes to the database
+            await _context.SaveChangesAsync();
+
+            return Ok("User details updated successfully.");
+        }
+
+
+
+
+        [HttpGet("bmi/{userId}")]
+        public async Task<ActionResult<object>> GetBmi(int userId)
+        {
             var user = await _context.UserModel.FindAsync(userId);
             if (user == null)
             {
                 return NotFound("User not found.");
             }
 
-            // Update the user details
-            user.Firstname = updatedUser.Firstname;
-            user.Lastname = updatedUser.Lastname;
-            user.Gender = updatedUser.Gender;
-            user.Email = updatedUser.Email;
-            user.DateOfBirth = updatedUser.DateOfBirth;
-            user.Height = updatedUser.Height;
-            user.Weight = updatedUser.Weight;
+            double bmi = user.CalculateBmi();
+            string bmiCategory = user.GetBmiCategory(bmi);
 
-            // Save changes to the database
-            await _context.SaveChangesAsync();
-
-            return NoContent(); // Return 204 No Content status indicating successful update
+            return Ok(new { Bmi = bmi, Category = bmiCategory });
         }
 
 
 
+
+
+        [HttpGet("activity/{id}")]
+        public async Task<ActionResult<ActivityModel>> GetActivity(int id)
+        {
+            var activity = await _context.Activity.FindAsync(id);
+            if (activity == null)
+            {
+                return NotFound("Activity not found.");
+            }
+            return Ok(activity);
+        }
+
+
+
+        //Create Activity
+        [Authorize]
+        [HttpPost("activity")]
+        public async Task<ActionResult<ActivityModel>> CreateActivity([FromBody] ActivityModel activity)
+        {
+
+            if (activity.ActivityDate > DateTime.UtcNow)
+            {
+                return BadRequest(_localizer["BadRequest"]);
+            }
+
+            // Retrieve user ID from the JWT claim
+            var userIdClaim = HttpContext.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier);
+            if (userIdClaim == null)
+            {
+                return Unauthorized("You need to be logged in to perform this action.");
+            }
+
+            // Convert the user ID claim to an integer
+            if (!int.TryParse(userIdClaim.Value, out var userId))
+            {
+                return Unauthorized("Invalid user ID.");
+            }
+
+            var user = await _context.UserModel.FindAsync(userId);
+            if (user == null)
+            {
+                return NotFound("User not found.");
+            }
+
+            // Set the UserId from the JWT claim
+            activity.UserId = userId;
+
+            _context.Activity.Add(activity);
+            await _context.SaveChangesAsync();
+
+            return CreatedAtAction(nameof(GetActivity), new { id = activity.LogId }, activity);
+        }
+
+        [HttpGet("stepgoal/{userId}")]
+        public async Task<ActionResult<int>> GetStepGoal(int userId)
+        {
+            var user = await _context.UserModel.FindAsync(userId);
+
+            if (user == null)
+            {
+                return NotFound("User not found.");
+            }
+
+            return user.DailyStepGoal;
+        }
+
+        // PUT api/<FitController>/stepgoal/{userId}
+        [HttpPut("stepgoal/{userId}")]
+        public async Task<IActionResult> SetStepGoal(int userId, [FromBody] int stepGoal)
+        {
+            var user = await _context.UserModel.FindAsync(userId);
+
+            if (user == null)
+            {
+                return NotFound("User not found.");
+            }
+
+            if (stepGoal <= 0)
+            {
+                return BadRequest("Step goal must be a positive number.");
+            }
+
+            user.DailyStepGoal = stepGoal;
+            await _context.SaveChangesAsync();
+
+            return Ok("Step goal updated successfully.");
+        }
 
     }
 

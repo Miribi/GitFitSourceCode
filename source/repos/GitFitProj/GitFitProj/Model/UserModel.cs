@@ -47,8 +47,38 @@ namespace GitFitProj.Model
         [Required]
         public int Weight { get; set; }
 
-        
+
+        public int DailyStepGoal { get; set; } = 10000; // Default step goal
+        public double WeightGoal { get; set; } // User's target weight
+
+        // Add activity preferences properties
+        public string PreferredActivityType { get; set; } // e.g., Running, Walking, Cycling
+
+        // You can also add a field for the intensity preference if relevant
+        public string PreferredIntensity { get; set; } // e.g., Light, Moderate, Vigorous
+
+
+
+        public double CalculateBmi()
+        {
+            double heightInMeters = Height / 100.0; // assuming Height is stored in centimeters
+            return Weight / (heightInMeters * heightInMeters);
+        }
+
+        public string GetBmiCategory(double bmi)
+        {
+            if (bmi < 18.5)
+                return "Underweight";
+            if (bmi >= 18.5 && bmi < 25)
+                return "Normal weight";
+            if (bmi >= 25 && bmi < 30)
+                return "Overweight";
+            return "Obesity";
+        }
+
+
     }
-
-
 }
+
+
+
