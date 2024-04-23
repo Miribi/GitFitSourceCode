@@ -35,7 +35,7 @@ namespace GitFitProj.Model
 
         [Range(0, int.MaxValue, ErrorMessage = "Steps must be over Zero.")]
         /// <summary>
-        /// Gets or sets the unique identifier for the user.
+        /// Gets or sets the unique identifier for the user. 
         /// </summary>
         public int Steps { get; set; }
         public string ActivityType { get; set; } // e.g., Running, Walking, Cycling

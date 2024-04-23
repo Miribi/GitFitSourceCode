@@ -7,30 +7,45 @@ using System.Text;
 using GitFitProj.Controllers;
 using Microsoft.OpenApi.Models;
 using System.Reflection;
+using GitFitProj;
 
 
 
 
 var builder = WebApplication.CreateBuilder(args);
 
-// JWT Configuration
-var jwtKey = builder.Configuration["JwtConfig:Secret"];
-var keyBytes = Convert.FromBase64String(jwtKey);
-var securityKey = new SymmetricSecurityKey(keyBytes);
 
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options =>
+
+// Swagger/OpenAPI Configuration
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new OpenApiInfo
     {
-        options.TokenValidationParameters = new TokenValidationParameters
+        Title = "GitFit API",
+        Version = "v1",
+        Description = "An API for a fitness tracking application",
+        Contact = new OpenApiContact
         {
-            ValidateIssuerSigningKey = true,
-            IssuerSigningKey = securityKey,
-            ValidateIssuer = false,
-            ValidateAudience = false,
-            ClockSkew = TimeSpan.Zero // Immediate token expiration
-        };
+            Name = "GitFit Support",
+            Email = "support@gitfitapi.com"
+        }
     });
+    // Set the comments path for the Swagger JSON and UI.
+    var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+    c.IncludeXmlComments(xmlPath);
 
+    // UseFullTypeNameInSchemaIds replacement for .NET Core
+    c.CustomSchemaIds(type => type.ToString());
+});
+
+
+
+
+
+
+
+builder.Services.AddAuthorization();
 
 
 
@@ -43,7 +58,8 @@ builder.Services.AddLocalization(options => options.ResourcesPath = "Resources")
 // Controller and Swagger Services
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+
+
 
 // Database Configuration
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
@@ -63,29 +79,8 @@ builder.Services.AddDbContext<GitFitContext>(options =>
         })
 );
 
-//Swagger/OpenAPI Configuration
-builder.Services.AddSwaggerGen(c =>
-{
-    c.SwaggerDoc("v1", new OpenApiInfo
-    {
-        Title = "GitFit API",
-        Version = "v1",
-        Description = "An API for a fitness tracking application",
-        Contact = new OpenApiContact
-        {
-            Name = "GitFit Support",
-            Email = "support@gitfitapi.com"
-        }
-    });
 
-    // Set the comments path for the Swagger JSON and UI.
-    var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
-    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
-    c.IncludeXmlComments(xmlPath);
 
-    // UseFullTypeNameInSchemaIds replacement for .NET Core
-    c.CustomSchemaIds(type => type.ToString());
-});
 
 
 
@@ -93,7 +88,7 @@ builder.Services.AddSwaggerGen(c =>
 
 var app = builder.Build();
 
-//Localiyation for languages
+//Localization for languages
 var supportedCultures = new[] {"de-DE", "zh-CN" };
 var localizationOptions = new RequestLocalizationOptions()
     .SetDefaultCulture(supportedCultures[0])
@@ -112,10 +107,12 @@ if (app.Environment.IsDevelopment())
         //c.RoutePrefix = string.Empty; // Set Swagger UI at the app's root
     });
 }
-
+// Middleware to handle exceptions globally
+app.UseExceptionHandler("/error");
 app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
-
+// Map the controllers
 app.MapControllers();
+// Run the app
 app.Run();

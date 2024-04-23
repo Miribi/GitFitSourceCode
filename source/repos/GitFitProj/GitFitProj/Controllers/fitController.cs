@@ -22,14 +22,13 @@ namespace EADproject.Controllers
     {
         private readonly GitFitContext _context;
         private readonly IStringLocalizer<FitController> _localizer;
-        private readonly SymmetricSecurityKey _securityKey;
+        
 
         public FitController(GitFitContext context, IStringLocalizer<FitController> localizer, IConfiguration configuration)
         {
             _context = context;
             _localizer = localizer;
-            var jwtKey = configuration["JwtConfig:Secret"];
-            _securityKey = new SymmetricSecurityKey(Convert.FromBase64String(jwtKey));
+           
         }
         /// <summary>
         /// Gets or sets the unique identifier for the user.
@@ -91,37 +90,40 @@ namespace EADproject.Controllers
             {
                 return Unauthorized(_localizer["Invalid password."]);
             }
-            return Ok(GenerateJwtToken(user));
+            return Ok("Login Succesfull");
+           
         }
 
-        private string GenerateJwtToken(UserModel user)
-        {
-            var credentials = new SigningCredentials(_securityKey, SecurityAlgorithms.HmacSha256);
-            var claims = new[] { new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()) };
-            var token = new JwtSecurityToken(
-                issuer: "GitFit Tracker",
-                audience: "https://localhost:7288",
-                claims: claims,
-                expires: DateTime.UtcNow.AddHours(1),
-                signingCredentials: credentials);
-            return new JwtSecurityTokenHandler().WriteToken(token);
-        }
+
         /// <summary>
         /// Gets or sets the unique identifier for the user.
         /// </summary>
-        [HttpDelete("delete/{id}")]
-        public async Task<IActionResult> DeleteUser(int id)
+        [HttpPost("delete/{userId}")]
+        public async Task<IActionResult> DeleteUser(int userId)
         {
-            var user = await _context.UserModel.FindAsync(id);
+            var user = await _context.UserModel.FindAsync(userId);
             if (user == null)
             {
                 return NotFound(_localizer["User not found."]);
             }
 
             _context.UserModel.Remove(user);
-            await _context.SaveChangesAsync();
-            return NoContent();
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateException ex)
+            {
+                // Log the exception details here to understand the problem
+                // This could be due to constraints that prevent the user's deletion
+                return BadRequest(_localizer["Failed to delete the user due to database constraints."]);
+            }
+            return Ok(_localizer["Your account has been deleted. We are sorry to see you leave."]);
         }
+
+
+
+
         /// <summary>
         /// Gets or sets the unique identifier for the user.
         /// </summary>
@@ -170,7 +172,6 @@ namespace EADproject.Controllers
         /// <summary>
         /// Gets or sets the unique identifier for the user.
         /// </summary>
-        [Authorize]
         [HttpPost("activity")]
         public async Task<ActionResult<ActivityModel>> CreateActivity([FromBody] ActivityModel activity)
         {
@@ -208,7 +209,7 @@ namespace EADproject.Controllers
             return CreatedAtAction(nameof(GetActivity), new { id = activity.LogId }, activity);
         }
         /// <summary>
-        /// Gets or sets the unique identifier for the user.
+        /// Gets stepgoal for the user.
         /// </summary>
         [HttpGet("stepgoal/{userId}")]
         public async Task<ActionResult<int>> GetStepGoal(int userId)
