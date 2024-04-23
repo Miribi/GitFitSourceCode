@@ -28,9 +28,7 @@ jobs:
           dotnet build --configuration Release
 
       - name: dotnet publish
-        run: |
-          cd GitFitProj
-          dotnet publish -c Release -o ${{env.DOTNET_ROOT}}/GitFit
+        run: dotnet publish ./GitFitProj/GitFitProj.csproj -c Release -o ${{env.DOTNET_ROOT}}/GitFit
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v3
