@@ -1,0 +1,6 @@
+@GitFitProj_HostAddress = http://localhost:5296
+
+GET {{GitFitProj_HostAddress}}/Controllers/
+Accept: application/json
+
+###
