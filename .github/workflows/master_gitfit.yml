@@ -1,12 +1,12 @@
 # Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
 # More GitHub Actions for Azure: https://github.com/Azure/actions
 
-name: Build and deploy ASP.Net Core app to Azure Web App - GitFit
+name: Build and deploy ASP.Net Core app to Azure Web App - EAD2PlannerApp
 
 on:
   push:
     branches:
-      - master
+      - main
   workflow_dispatch:
 
 jobs:
@@ -17,16 +17,15 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Set up .NET Core
-        uses: actions/setup-dotnet@v1
+        uses: actions/setup-dotnet@v3
         with:
           dotnet-version: '8.x'
-          include-prerelease: true
 
       - name: Build with dotnet
-        run: dotnet build --configuration Release
+        run: dotnet build --configuration Release GitFitProj/GitFitProj.csproj
 
       - name: dotnet publish
-        run: dotnet publish -c Release -o ${{env.DOTNET_ROOT}}/myapp
+        run: dotnet publish GitFitProj/GitFitProj.csproj -c Release -o ${{env.DOTNET_ROOT}}/myapp
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v3
@@ -40,6 +39,8 @@ jobs:
     environment:
       name: 'Production'
       url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
+    permissions:
+      id-token: write #This is required for requesting the JWT
     
     steps:
       - name: Download artifact from build job
@@ -53,5 +54,5 @@ jobs:
         with:
           app-name: 'GitFit'
           slot-name: 'Production'
-          package: .
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_7538315C97D94C1F80F8A32EC2939E29 }}
+          package: .
