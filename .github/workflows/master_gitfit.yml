@@ -55,4 +55,4 @@ jobs:
           app-name: 'GitFit'
           slot-name: 'Production'
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_7538315C97D94C1F80F8A32EC2939E29 }}
-          package: .
+          package: .
