@@ -16,14 +16,19 @@ using System.IdentityModel.Tokens.Jwt;
 
 namespace EADproject.Controllers
 {
+    /// <summary>
+    /// FitController with all the GET, PUT ... implementations.
+    /// </summary>
     [Route("api/[controller]")]
     [ApiController]
     public class FitController : ControllerBase
     {
         private readonly GitFitContext _context;
         private readonly IStringLocalizer<FitController> _localizer;
-        
 
+        /// <summary>
+        /// Database connection and Localizer.
+        /// </summary>
         public FitController(GitFitContext context, IStringLocalizer<FitController> localizer, IConfiguration configuration)
         {
             _context = context;
@@ -65,6 +70,7 @@ namespace EADproject.Controllers
             _context.UserModel.Add(model);
             await _context.SaveChangesAsync();
 
+            // The ID will be generated automatically when saving changes if configured correctly
             return CreatedAtAction(nameof(GetUser), new { id = model.UserId }, model);
         }
 

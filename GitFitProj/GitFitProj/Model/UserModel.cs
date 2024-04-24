@@ -3,13 +3,15 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 namespace GitFitProj.Model
 {
+    /// <summary>
+    /// Class UserModel has User Details stored and all realted Features.
+    /// </summary>
     public class UserModel
     {
 
         /// <summary>
         /// Gets or sets the unique identifier for the user.
         /// </summary>
-        
         [Key]
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int UserId { get; set; }
@@ -125,15 +127,5 @@ namespace GitFitProj.Model
                 return "Overweight";
             return "Obesity";
         }
-
-
-
     }
-
-
-
-
 }
-
-
-

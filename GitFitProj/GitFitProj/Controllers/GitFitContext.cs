@@ -5,7 +5,7 @@ using System.Diagnostics;
 namespace GitFitProj.Controllers
 {
     /// <summary>
-    /// Gets or sets the unique identifier for the user.
+    /// Data base .
     /// </summary>
     public class GitFitContext : DbContext
     {
