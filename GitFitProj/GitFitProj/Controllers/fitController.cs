@@ -13,6 +13,8 @@ using GitFitProj.Model;
 using Microsoft.EntityFrameworkCore;
 using GitFitProj.Controllers;
 using System.IdentityModel.Tokens.Jwt;
+using static GitFitProj.Model.ActivityModel;
+using System.Diagnostics;
 
 namespace EADproject.Controllers
 {
@@ -152,7 +154,7 @@ namespace EADproject.Controllers
             return Ok(_localizer["User updated successfully."]);
         }
         /// <summary>
-        /// Gets or sets the unique identifier for the user.
+        /// Gets the BMI of the user based on Weight and Height.
         /// </summary>
         [HttpGet("bmi/{userId}")]
         public async Task<ActionResult<object>> GetBmi(int userId)
@@ -164,49 +166,14 @@ namespace EADproject.Controllers
             }
 
             double? bmi = user.CalculateBmi();
-            string bmiCategory = user.GetBmiCategory(bmi.Value);  // Ensure CalculateBmi and GetBmiCategory methods are implemented
+            string bmiCategory = user.GetBmiCategory(bmi.Value);
 
             return Ok(new { Bmi = bmi, Category = bmiCategory });
         }
-        /// <summary>
-        /// Gets or sets the unique identifier for the user.
-        /// </summary>
-        [HttpPost("activity")]
-        public async Task<ActionResult<ActivityModel>> CreateActivity([FromBody] ActivityModel activity)
-        {
-            var validActivityTypes = new List<string> { "Running", "Weights", "Cycling", "Swimming", "Yoga", "Zumba", "Other Workout" };
-            if (activity.ActivityDate > DateTime.UtcNow)
-            {
-                return BadRequest(_localizer["Activity date cannot be in the future."]);
-            }
 
-            if (!validActivityTypes.Contains(activity.ActivityType))
-            {
-                return BadRequest(new
-                {
-                    Error = _localizer["Invalid activity type. Valid types are:"] + " " + String.Join(", ", validActivityTypes)
-                });
-            }
 
-            var userIdClaim = HttpContext.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier);
-            if (userIdClaim == null)
-            {
-                return Unauthorized(_localizer["You need to be logged in to perform this action."]);
-            }
 
-            int userId = int.Parse(userIdClaim.Value);
-            var user = await _context.UserModel.FindAsync(userId);
-            if (user == null)
-            {
-                return NotFound(_localizer["User not found."]);
-            }
-
-            activity.UserId = userId;
-            _context.Activity.Add(activity);
-            await _context.SaveChangesAsync();
-
-            return CreatedAtAction(nameof(GetActivity), new { id = activity.LogId }, activity);
-        }
+        
         /// <summary>
         /// Gets stepgoal for the user.
         /// </summary>
@@ -221,43 +188,36 @@ namespace EADproject.Controllers
 
             return Ok(user.DailyStepGoal);
         }
+
+
         /// <summary>
-        /// Gets or sets the unique identifier for the user.
+        /// Creates a workout based on the selected workout type.
         /// </summary>
-        [HttpPut("stepgoal/{userId}")]
-        public async Task<IActionResult> SetStepGoal(int userId, [FromBody] int stepGoal)
+
+        [HttpGet("workouts")]
+        public ActionResult GetWorkouts()
         {
-            var user = await _context.UserModel.FindAsync(userId);
-            if (user == null)
-            {
-                return NotFound(_localizer["User not found."]);
-            }
+            var workouts = Enum.GetNames(typeof(WorkoutType)).ToList();
+            var intensities = Enum.GetNames(typeof(IntensityLevel)).ToList();
 
-            if (stepGoal <= 0)
-            {
-                return BadRequest(_localizer["Step goal must be a positive number."]);
-            }
-
-            user.DailyStepGoal = stepGoal;
-            await _context.SaveChangesAsync();
-
-            return Ok(_localizer["Step goal updated successfully."]);
+            return Ok(new { Workouts = workouts, Intensities = intensities });
         }
 
-        /// <summary>
-        /// Gets or sets the unique identifier for the user.
-        /// </summary>
-        [HttpGet("activity/{id}")]
-        public async Task<ActionResult<ActivityModel>> GetActivity(int id)
+
+        [HttpPost("createActivity")]
+        public async Task<ActionResult<ActivityModel>> CreateActivity([FromBody] ActivityModel activity)
         {
-            var activity = await _context.Activity.FindAsync(id);
             if (activity == null)
             {
-                return NotFound(_localizer["Activity not found."]);
+                return BadRequest("Invalid activity data.");
             }
 
-            return Ok(activity);
+            _context.Activity.Add(activity);
+            await _context.SaveChangesAsync();
+
+            return CreatedAtAction(nameof(GetUser), new { id = activity.UserId }, activity);
         }
+
     }
 }
 

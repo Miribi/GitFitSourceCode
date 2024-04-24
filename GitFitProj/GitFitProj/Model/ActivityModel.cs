@@ -95,7 +95,26 @@ namespace GitFitProj.Model
         public bool CheckStepGoal()
         {
             return Steps >= User.DailyStepGoal;
+    
         }
+
+
+        public enum WorkoutType
+        {
+            Running,
+            Swimming,
+            Cycling,
+            Yoga
+        }
+
+        public enum IntensityLevel
+        {
+            Low,
+            Medium,
+            High
+        }
+
     }
+
 
 }
