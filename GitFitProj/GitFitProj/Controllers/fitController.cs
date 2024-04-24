@@ -59,7 +59,7 @@ namespace EADproject.Controllers
         /// Gets or sets the unique identifier for the user.
         /// </summary>
         [HttpPost("signup")]
-        public async Task<ActionResult<UserModel>> SignUp([FromBody] UserModel model)
+        public async Task<ActionResult<UserModel>> SignUp([FromBody]UserModel model)
         {
             if (await _context.UserModel.AnyAsync(u => u.Email == model.Email))
             {
@@ -104,28 +104,21 @@ namespace EADproject.Controllers
         /// <summary>
         /// Gets or sets the unique identifier for the user.
         /// </summary>
-        [HttpPost("delete/{userId}")]
-        public async Task<IActionResult> DeleteUser(int userId)
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteUser(int id)
         {
-            var user = await _context.UserModel.FindAsync(userId);
+            var user = await _context.UserModel.FindAsync(id);
             if (user == null)
             {
                 return NotFound(_localizer["User not found."]);
             }
 
             _context.UserModel.Remove(user);
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateException ex)
-            {
-                // Log the exception details here to understand the problem
-                // This could be due to constraints that prevent the user's deletion
-                return BadRequest(_localizer["Failed to delete the user due to database constraints."]);
-            }
-            return Ok(_localizer["Your account has been deleted. We are sorry to see you leave."]);
+            await _context.SaveChangesAsync();
+
+            return Ok(_localizer["User deleted successfully."]);
         }
+
 
 
 
